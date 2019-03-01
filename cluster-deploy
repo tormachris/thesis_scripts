@@ -23,15 +23,21 @@ HASH=""
 function usage {
 cat << EOF
 
-EOF
+Usage: $SCRIPTNAME <CNI>
 
+Available CNI plugins:
+	* Calico
+	* Cilium
+	* Flannel
+	* WeaveNet
+
+EOF
 }
 
 ## Send error messages to stderr
 function echo_err {
 	echo "Error: $@" >&2
 }
-
 
 function wait_for_worker {
   while [[ "$(kubectl get nodes | grep Ready | grep none | wc -l)" -lt 1 ]];
@@ -57,12 +63,47 @@ if [ ! -f $WORKER_LIST ]; then
 	fi
 fi
 
+## Check for argument
+if [ "$#" -lt 1 ]; then
+	echo_err "Missing CNI plugin name as an argument."
+	exit 1
+fi
+
+# Make the letters of the argument lowercase
+CNI=$(tr '[:upper:]' '[:lower:]'  <<< $1)
 
 ## Setup Kubernetes
 ./deploy/kubernetes_install.sh
 
-## Setup WeaveNet
-./deploy/weavenet_setup.sh
+## Initialize Master and install CNI plugin
+case $CNI in
+	### Setup Calico
+	calico)		echo "[CNI] Installing Calico... ";
+			./deploy/calico_setup.sh;
+			echo "[CNI]" Calico installion is completed.;;
+
+	### Setup Cilium
+	cilium)		echo "[CNI] Installing Cilium... ";
+			./deploy/cilium_setup.sh;
+			echo "[CNI]" Cilium installion is completed.;;
+
+	### Setup Flannel
+	flannel)	echo "[CNI] Installing Flannel... ";
+			./deploy/flannel_setup.sh;
+			echo "[CNI]" Flannel installion is completed.;;
+
+	### Setup WeaveNet
+	weavenet)	echo "[CNI] Installing WeaveNet... ";
+			./deploy/weavenet_setup.sh;
+			echo "[CNI]" WeaveNet installion is completed.;;
+
+	### Print out help message
+	help) 		usage; exit 0;;
+
+	### Wrong argument, print error message
+	*)		echo_err "Unknown CNI plugin!";
+			exit 1;;
+esac
 
 #IP=$(ip addr sh dev $(ip ro sh | grep default | awk '{print $5}') scope global | grep inet | awk '{split($2,addresses,"/"); print addresses[1]}'):6443
 IP=$(ifconfig $(route | grep '^default' | grep -o '[^ ]*$') | grep "inet addr:" | awk '{print $2}' | cut -c6-)
@@ -72,6 +113,7 @@ HASH=sha256:$(openssl x509 -pubkey -in /etc/kubernetes/pki/ca.crt | openssl rsa 
 #FIXME Do I need local docker-registry?
 #./deploy/docker_registry_setup.sh $IP:5000
 
+# Join the worker nodes
 for LINE in $(cat $WORKER_LIST | grep -vE "^#"); do
 	WORKERNAME=`echo $LINE | awk -F"/" '{print $NF}'`
 
