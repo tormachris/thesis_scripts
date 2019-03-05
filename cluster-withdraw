@@ -56,4 +56,3 @@ for LINE in $(cat $WORKER_LIST | grep -vE "^#"); do
 
 	echo "[worker:$WORKERNAME] Eviction is completed."
 done
-

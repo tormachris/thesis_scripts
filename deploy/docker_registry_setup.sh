@@ -1,3 +1,4 @@
+#!/bin/bash
 IP=$1
 sed "/ExecStart/ s/$/ --insecure-registry=$IP/" /lib/systemd/system/docker.service > /lib/systemd/system/tmp
 mv /lib/systemd/system/tmp /lib/systemd/system/docker.service
