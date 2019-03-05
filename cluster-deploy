@@ -111,7 +111,7 @@ TOKEN=$(kubeadm token list | tail -n 1 | cut -d ' ' -f 1)
 HASH=sha256:$(openssl x509 -pubkey -in /etc/kubernetes/pki/ca.crt | openssl rsa -pubin -outform der 2>/dev/null | openssl dgst -sha256 -hex | sed 's/^.* //')
 
 #FIXME Do I need local docker-registry?
-#./deploy/docker_registry_setup.sh $IP:5000
+./deploy/docker_registry_setup.sh $IP:5000
 
 # Join the worker nodes
 for LINE in $(cat $WORKER_LIST | grep -vE "^#"); do
@@ -121,10 +121,10 @@ for LINE in $(cat $WORKER_LIST | grep -vE "^#"); do
 	ssh $WORKERNAME -o "StrictHostKeyChecking no" "bash -s" < ./deploy/kubernetes_install.sh true $IP:6443 $TOKEN $HASH
 
 	#FIXME Do I need to wait for the worker?
-#	wait_for_worker
+	wait_for_worker
 
 	#FIXME Do I need local docker-registry?
-#	ssh $WORKERNAME -o "StrictHostKeyChecking no" "bash -s" < ./deploy/docker_registry_setup.sh $IP:5000
+	ssh $WORKERNAME -o "StrictHostKeyChecking no" "bash -s" < ./deploy/docker_registry_setup.sh $IP:5000
 
 	echo "[worker:$WORKERNAME] Deployment is completed."
 done
